@@ -1,0 +1,13 @@
+[project]
+name = "trabajo-practico-aprendizaje-maquina-ii"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "mlflow>=3.12.0",
+    "boto3",
+    "scikit-learn",
+    "pandas",
+    "matplotlib",
+]
