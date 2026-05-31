@@ -121,6 +121,7 @@ services:
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER:-minio}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD:-minio123}
       - MLFLOW_S3_ENDPOINT_URL=http://s3:9000
+      - MLFLOW_HUEY_BACKEND_URL=redis://redis:6379
     command: >
       mlflow server
       --backend-store-uri postgresql://${PG_USER:-postgres}:${PG_PASSWORD:-postgres}@postgres:5432/${PG_DATABASE:-mlflow_db}

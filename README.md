@@ -5,7 +5,7 @@
 - [X] **Paso 1** — Armar el repo en GitHub con la estructura de carpetas (`dags/`, `src/`, `api/`, `notebooks/`) y el `.gitignore` con `.env` excluido
 - [X] **Paso 2** — Levantar el stack con Docker Compose (Airflow en :8080, MLflow en :5001, MinIO en :9001)
 - [X] **Paso 3** — Modularizar el código del notebook en archivos `.py` dentro de `src/` (data, features, train, evaluate)
-- [ ] **Paso 4** — Registrar experimentos con MLflow: loguear parámetros, métricas y modelo. Subir el mejor al Model Registry en `Staging`
+- [X] **Paso 4** — Registrar experimentos con MLflow: loguear parámetros, métricas y modelo. Subir el mejor al Model Registry en `Staging`
 - [ ] **Paso 5** — DAG de datos en Airflow: extraer CSV → validar → preprocesar y guardar en MinIO como Parquet
 - [ ] **Paso 6** — DAG de entrenamiento en Airflow: leer datos → entrenar → evaluar → registrar → promover a `Production` en MLflow
 - [ ] **Paso 7** — API con FastAPI: endpoint `/predict` que carga el modelo desde MLflow Registry y devuelve la predicción
