@@ -1,6 +1,6 @@
 # WARNING: This configuration is for local development. Do not use it in a production deployment.
 x-airflow-common: &airflow-common
-  build: './dockerfiles/airflow'
+  build: "./dockerfiles/airflow"
   image: ${AIRFLOW_IMAGE_NAME:-extending_airflow:latest}
   environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor # LocalExecutor
@@ -9,18 +9,19 @@ x-airflow-common: &airflow-common
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${AIRFLOW_PG_USER:-airflow}:${AIRFLOW_PG_PASSWORD:-airflow}@postgres/${AIRFLOW_PG_DATABASE:-airflow}
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_PG_USER:-airflow}:${AIRFLOW_PG_PASSWORD:-airflow}@postgres/${AIRFLOW_PG_DATABASE:-airflow}
-    AIRFLOW__CORE__FERNET_KEY: ''
-    AIRFLOW__API_AUTH__JWT_SECRET: 'qt2Edq6LIRdv5k0DDznVOA=='
-    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
-    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
-    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'True'
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__API_AUTH__JWT_SECRET: "qt2Edq6LIRdv5k0DDznVOA=="
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://airflow-apiserver:8080/execution/"
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
     AIRFLOW__SECRETS__BACKEND: airflow.secrets.local_filesystem.LocalFilesystemBackend
     AIRFLOW__SECRETS__BACKEND_KWARGS: '{"variables_file_path": "/opt/secrets/variables.yaml", "connections_file_path": "/opt/secrets/connections.yaml"}'
     AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
     AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minio123}
     AWS_ENDPOINT_URL_S3: http://s3:9000
+    PYTHONPATH: /opt/project
     #AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.session'
     #AIRFLOW__CORE__TEST_CONNECTION: 'Enabled'
   volumes:
@@ -29,10 +30,12 @@ x-airflow-common: &airflow-common
     - ${AIRFLOW_PROJ_DIR:-./airflow}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-./airflow}/plugins:/opt/airflow/plugins
     - ${AIRFLOW_PROJ_DIR:-./airflow}/secrets:/opt/secrets
+    - ./src:/opt/project/src
+    - ./modelo_ml:/opt/project/modelo_ml
   networks:
     - backend
   user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-0}"
-  depends_on:  &airflow-common-depends-on
+  depends_on: &airflow-common-depends-on
     postgres:
       condition: service_healthy
     redis:
@@ -90,14 +93,17 @@ services:
       - s3
     networks:
       - backend
+    volumes:
+      - ./modelo_ml/datasets:/seed:ro
     entrypoint: >
       /bin/sh -c '
       sleep 5;
       /usr/bin/mc alias set s3 http://s3:9000 ${MINIO_ROOT_USER:-minio} ${MINIO_ROOT_PASSWORD:-minio123};
-      /usr/bin/mc mb s3/${MLFLOW_BUCKET_NAME:-mlflow};
+      /usr/bin/mc mb --ignore-existing s3/${MLFLOW_BUCKET_NAME:-mlflow};
+      /usr/bin/mc mb --ignore-existing s3/${DATA_BUCKET_NAME:-data};
+      /usr/bin/mc cp /seed/car_details_v4.csv s3/${DATA_BUCKET_NAME:-data}/raw/car_details_v4.csv;
       exit 0;
       '
-
 
   mlflow:
     restart: always
@@ -177,7 +183,11 @@ services:
     <<: *airflow-common
     command: dag-processor
     healthcheck:
-      test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
+      test:
+        [
+          "CMD-SHELL",
+          'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"',
+        ]
       interval: 60s
       timeout: 10s
       retries: 5
@@ -213,12 +223,15 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
-
   airflow-triggerer:
     <<: *airflow-common
     command: triggerer
     healthcheck:
-      test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
+      test:
+        [
+          "CMD-SHELL",
+          'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"',
+        ]
       interval: 60s
       timeout: 10s
       retries: 5
@@ -326,11 +339,11 @@ services:
     # yamllint enable rule:line-length
     environment:
       <<: *airflow-common-env
-      _AIRFLOW_DB_MIGRATE: 'true'
-      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
       _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
-      _PIP_ADDITIONAL_REQUIREMENTS: ''
+      _PIP_ADDITIONAL_REQUIREMENTS: ""
     user: "0:0"
 
 networks:

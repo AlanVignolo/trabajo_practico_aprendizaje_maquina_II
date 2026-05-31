@@ -1,3 +1,4 @@
 pandas
 ucimlrepo
 scikit-learn
+s3fs
