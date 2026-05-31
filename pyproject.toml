@@ -10,4 +10,8 @@ dependencies = [
     "scikit-learn",
     "pandas",
     "matplotlib",
+    "xgboost",
+    "lightgbm",
+    "optuna",
+    "joblib",
 ]
