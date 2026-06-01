@@ -41,7 +41,7 @@ def _load_resources() -> None:
     import s3fs
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     _model = mlflow.sklearn.load_model("models:/CarPriceModel@champion")
-    fs = s3fs.S3FileSystem(endpoint_url=S3_ENDPOINT)
+    fs = s3fs.S3FileSystem(client_kwargs={"endpoint_url": S3_ENDPOINT})
     with fs.open(ARTIFACTS_S3_KEY, "rb") as f:
         _artifacts = joblib.load(f)
 
@@ -151,10 +151,6 @@ def predict(car: CarInput):
         "Price": [0.0],
     }
     df = pd.DataFrame(data)
-
-    for col in config.CATEGORICAL_COLUMNS:
-        if col in df.columns:
-            df[col] = df[col].astype("category")
 
     df_transformed = transform_test(df, _artifacts)
 

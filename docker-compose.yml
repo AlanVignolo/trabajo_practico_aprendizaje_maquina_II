@@ -21,6 +21,8 @@ x-airflow-common: &airflow-common
     AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
     AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minio123}
     AWS_ENDPOINT_URL_S3: http://s3:9000
+    MLFLOW_S3_ENDPOINT_URL: http://s3:9000
+    MLFLOW_TRACKING_URI: http://mlflow:5000
     PYTHONPATH: /opt/project
     #AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.session'
     #AIRFLOW__CORE__TEST_CONNECTION: 'Enabled'
@@ -381,6 +383,7 @@ services:
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER:-minio}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD:-minio123}
       - MLFLOW_S3_ENDPOINT_URL=http://s3:9000
+      - AWS_ENDPOINT_URL_S3=http://s3:9000
     volumes:
       - ./api:/app
       - ./src:/app/src:ro

@@ -82,26 +82,27 @@ def training_pipeline():
 
         mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
         mlflow.set_experiment(EXPERIMENT_NAME)
-        mlflow.sklearn.autolog(log_models=True, silent=True)
+        mlflow.sklearn.autolog(log_models=False, silent=False)
 
         for model_name in MODELS:
             print(f"Entrenando {model_name}...")
+            model = make_model(model_name)
             with mlflow.start_run(run_name=model_name):
                 metrics = compute_metrics(
-                    make_model(model_name),
-                    X_train, y_train, X_test, y_test,
-                    name=model_name,
+                    model, X_train, y_train, X_test, y_test, name=model_name,
                 )
                 mlflow.log_metrics({k: v for k, v in metrics.items() if isinstance(v, float)})
+                mlflow.sklearn.log_model(model, "model")
 
             print(f"Entrenando {model_name} + PCA...")
+            model_pca = make_model(model_name)
             with mlflow.start_run(run_name=f"{model_name}_pca"):
                 metrics = compute_metrics(
-                    make_model(model_name),
-                    X_train_pca, y_train_pca, X_test_pca, y_test_pca,
+                    model_pca, X_train_pca, y_train_pca, X_test_pca, y_test_pca,
                     name=f"{model_name}_pca",
                 )
                 mlflow.log_metrics({k: v for k, v in metrics.items() if isinstance(v, float)})
+                mlflow.sklearn.log_model(model_pca, "model")
 
         runs = mlflow.search_runs(experiment_names=[EXPERIMENT_NAME])
         best_run = runs.sort_values("metrics.MAE").iloc[0]
