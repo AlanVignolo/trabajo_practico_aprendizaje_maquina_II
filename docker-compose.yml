@@ -121,17 +121,23 @@ services:
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER:-minio}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD:-minio123}
       - MLFLOW_S3_ENDPOINT_URL=http://s3:9000
-      - MLFLOW_HUEY_BACKEND_URL=redis://redis:6379
-    command: >
-      mlflow server
-      --backend-store-uri postgresql://${PG_USER:-postgres}:${PG_PASSWORD:-postgres}@postgres:5432/${PG_DATABASE:-mlflow_db}
-      --host 0.0.0.0
-      --default-artifact-root s3://${MLFLOW_BUCKET_NAME:-mlflow}/
+    command:
+      - mlflow
+      - server
+      - --backend-store-uri
+      - postgresql://${PG_USER:-postgres}:${PG_PASSWORD:-postgres}@postgres:5432/${PG_DATABASE:-mlflow_db}
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "5000"
+      - --default-artifact-root
+      - s3://${MLFLOW_BUCKET_NAME:-mlflow}/
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://127.0.0.1:5000/health || exit 1
-      interval: 60s
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5000/health"]
+      interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 30s
 
   redis:
     image: valkey/valkey:8.1-bookworm
@@ -346,6 +352,41 @@ services:
       _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
       _PIP_ADDITIONAL_REQUIREMENTS: ""
     user: "0:0"
+
+  streamlit:
+    restart: always
+    build: ./dockerfiles/streamlit
+    container_name: streamlit
+    ports:
+      - "8501:8501"
+    networks:
+      - backend
+    environment:
+      - API_URL=http://fastapi:8000
+    volumes:
+      - ./streamlit_app:/app
+    depends_on:
+      - fastapi
+
+  fastapi:
+    restart: always
+    build: ./dockerfiles/fastapi
+    container_name: fastapi
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER:-minio}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD:-minio123}
+      - MLFLOW_S3_ENDPOINT_URL=http://s3:9000
+    volumes:
+      - ./api:/app
+      - ./src:/app/src:ro
+    depends_on:
+      mlflow:
+        condition: service_healthy
 
 networks:
   backend:

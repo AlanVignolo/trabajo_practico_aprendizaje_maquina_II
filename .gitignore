@@ -219,3 +219,13 @@ __marimo__/
 
 # Airflow runtime (mounted into containers by docker-compose)
 airflow/logs/
+
+# Artefactos generados por los DAGs (datos procesados, modelos, encoders)
+airflow/dags/data/
+modelo_ml/datasets/cache/
+modelo_ml/artifacts/
+modelo_ml/datasets/*.db
+
+# Modelos y artefactos serializados
+*.pkl
+*.joblib
