@@ -152,6 +152,13 @@ def predict(car: CarInput):
     }
     df = pd.DataFrame(data)
 
+    # Castear categóricas igual que hace clean_structural, para que
+    # transform_test reciba el mismo tipo de datos que durante el training.
+    from src import config as cfg
+    for col in cfg.CATEGORICAL_COLUMNS:
+        if col in df.columns:
+            df[col] = df[col].astype("category")
+
     df_transformed = transform_test(df, _artifacts)
 
     if df_transformed.empty:
@@ -162,8 +169,14 @@ def predict(car: CarInput):
 
     X = df_transformed.drop(columns=["Price"], errors="ignore")
 
-    # El target fue transformado con log1p durante el entrenamiento.
-    log_price = float(_model.predict(X)[0])
+    # El modelo predice Price en espacio escalado (StandardScaler + log1p).
+    # Invertir el scaler sobre Price y luego aplicar expm1.
+    price_scaled = float(_model.predict(X)[0])
+    train_cols = _artifacts["train_cols"]
+    price_idx = train_cols.index("Price")
+    price_mean = _artifacts["scaler"].mean_[price_idx]
+    price_std = _artifacts["scaler"].scale_[price_idx]
+    log_price = price_scaled * price_std + price_mean
     predicted_price = float(np.expm1(log_price))
 
     return PredictionResponse(predicted_price_inr=round(predicted_price, 2))

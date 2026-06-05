@@ -183,17 +183,24 @@ def transform_test(
         )
 
     # 5. Combinación de categorías en `Owner`
+    df["Owner"] = df["Owner"].astype(object)
     for src_val, dst_val in config.OWNER_REPLACEMENTS.items():
         df["Owner"] = df["Owner"].replace(src_val, dst_val)
 
     # 6. Frequency Encoding usando los mapas de train (categorías nuevas -> 0)
     frequency_maps: dict[str, pd.Series] = artifacts["frequency_maps"]
     for col, freq in frequency_maps.items():
-        df[f"{col}_freq"] = df[col].map(freq).fillna(0)
+        df[f"{col}_freq"] = df[col].astype(object).map(freq).fillna(0)
     df.drop(columns=list(frequency_maps.keys()), inplace=True)
 
     # 7. One-Hot Encoding
-    df = pd.get_dummies(df, columns=config.ONE_HOT_COLUMNS, drop_first=True)
+    # Sin drop_first: el reindex posterior (paso 12) descarta la columna
+    # de la categoría base usando train_cols, reproduciendo exactamente
+    # el mismo encoding que en train sin depender del orden de categorías.
+    for col in config.ONE_HOT_COLUMNS:
+        if col in df.columns:
+            df[col] = df[col].astype(object)
+    df = pd.get_dummies(df, columns=config.ONE_HOT_COLUMNS, drop_first=False)
 
     # 8. Target Encoding (categorías nuevas -> media global de train)
     price_mean_by_color: pd.Series = artifacts["price_mean_by_color"]
@@ -218,7 +225,9 @@ def transform_test(
     df = df.astype({col: int for col in bool_cols})
 
     # 12. Reindex al orden de columnas de train + scaler.transform
-    df = df.reindex(columns=artifacts["train_cols"])
+    # fill_value=0: columnas OHE ausentes en inferencia (ej. Fuel Type_Diesel
+    # cuando el auto es Petrol) deben ser 0, no NaN.
+    df = df.reindex(columns=artifacts["train_cols"], fill_value=0)
     df = pd.DataFrame(
         artifacts["scaler"].transform(df),
         columns=df.columns,
