@@ -169,8 +169,6 @@ def predict(car: CarInput):
 
     X = df_transformed.drop(columns=["Price"], errors="ignore")
 
-    # El modelo predice Price en espacio escalado (StandardScaler + log1p).
-    # Invertir el scaler sobre Price y luego aplicar expm1.
     price_scaled = float(_model.predict(X)[0])
     train_cols = _artifacts["train_cols"]
     price_idx = train_cols.index("Price")

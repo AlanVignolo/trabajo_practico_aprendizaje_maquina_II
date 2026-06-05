@@ -194,9 +194,6 @@ def transform_test(
     df.drop(columns=list(frequency_maps.keys()), inplace=True)
 
     # 7. One-Hot Encoding
-    # Sin drop_first: el reindex posterior (paso 12) descarta la columna
-    # de la categoría base usando train_cols, reproduciendo exactamente
-    # el mismo encoding que en train sin depender del orden de categorías.
     for col in config.ONE_HOT_COLUMNS:
         if col in df.columns:
             df[col] = df[col].astype(object)
@@ -225,8 +222,6 @@ def transform_test(
     df = df.astype({col: int for col in bool_cols})
 
     # 12. Reindex al orden de columnas de train + scaler.transform
-    # fill_value=0: columnas OHE ausentes en inferencia (ej. Fuel Type_Diesel
-    # cuando el auto es Petrol) deben ser 0, no NaN.
     df = df.reindex(columns=artifacts["train_cols"], fill_value=0)
     df = pd.DataFrame(
         artifacts["scaler"].transform(df),
